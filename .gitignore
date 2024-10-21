@@ -1,0 +1,9 @@
+# Ignore node_modules in the main project and codefest directory
+node_modules/
+codefest/node_modules/
+server/node_modules/
+
+# Ignore .env files in the main project and codefest directory
+.env
+codefest/.env
+server/.env
