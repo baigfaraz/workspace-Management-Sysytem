@@ -1,30 +1,41 @@
-import {
-  MessageBar,
-  MessageBarType,
-  PrimaryButton,
-  Stack,
-  Text,
-  TextField
-} from "@fluentui/react";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import {
+  Stack,
+  Text,
+  TextField,
+  PrimaryButton,
+  DefaultButton,
+  MessageBar,
+  MessageBarType,
+  Checkbox,
+  Link,
+  Icon,
+  ProgressIndicator,
+  initializeIcons
+} from "@fluentui/react";
+import { mergeStyles } from '@fluentui/merge-styles';
+
+// Initialize Fluent UI icons
+initializeIcons();
+
+// Merge Fluent UI styles with Tailwind classes
+const containerClass = mergeStyles('min-h-screen bg-gray-100 flex items-center justify-center px-4');
+const formContainerClass = mergeStyles('bg-white p-8 rounded-lg shadow-md w-full max-w-md');
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { user, login } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
-      if (user.role === "admin") {
-        navigate("/admin-dashboard");
-      } else {
-        navigate("/home");
-      }
+      navigate(user.role === "admin" ? "/admin-dashboard" : "/home");
     }
   }, [user, navigate]);
 
@@ -46,41 +57,21 @@ const LoginPage = () => {
 
     if (!validateForm()) return;
 
+    setIsLoading(true);
     try {
       const user = await login(email, password);
-      if (user.role === "admin") {
-        navigate("/admin-dashboard");
-      } else {
-        navigate("/home");
-      }
+      navigate(user.role === "admin" ? "/admin-dashboard" : "/home");
     } catch (error) {
       setError(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <Stack
-      horizontalAlign="center"
-      verticalAlign="center"
-      styles={{ root: { minHeight: "100vh", backgroundColor: "#f3f2f1" } }}
-    >
-      <Stack
-        tokens={{ childrenGap: 20 }}
-        styles={{
-          root: {
-            width: 400,
-            padding: 20,
-            backgroundColor: "white",
-            boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-          },
-        }}
-      >
-        <Text
-          variant="xxLarge"
-          styles={{ root: { textAlign: "center", fontWeight: "bold" } }}
-        >
-          Login
-        </Text>
+    <div className={containerClass}>
+      <Stack className={formContainerClass}>
+        <Text variant="xxLarge" className="text-center font-bold mb-6">Login</Text>
 
         <form onSubmit={handleLogin}>
           <Stack tokens={{ childrenGap: 15 }}>
@@ -90,6 +81,8 @@ const LoginPage = () => {
               value={email}
               onChange={(e, newValue) => setEmail(newValue)}
               required
+              className="w-full"
+              placeholder="Enter your email"
             />
 
             <TextField
@@ -100,7 +93,8 @@ const LoginPage = () => {
               required
               canRevealPassword
               revealPasswordAriaLabel="Show password"
-              onRenderPassword={null}
+              className="w-full"
+              placeholder="Enter your password"
             />
 
             {error && (
@@ -112,33 +106,25 @@ const LoginPage = () => {
                 {error}
               </MessageBar>
             )}
-          </Stack>
 
-          <Stack
-            horizontalAlign="center"
-            tokens={{ childrenGap: 15, padding: 10 }}
-          >
-            <PrimaryButton type="submit" text="Login" />
+            <PrimaryButton 
+              type="submit" 
+              text={isLoading ? "Logging in..." : "Login"} 
+              disabled={isLoading}
+              className="w-full"
+            />
           </Stack>
         </form>
 
-        <div style={{ marginTop: 16, textAlign: "center" }}>
-          <p style={{ fontSize: "14px", color: "#605e5c" }}>
-            Don't have an account?{" "}
-            <span
-              style={{
-                color: "#0078d4",
-                cursor: "pointer",
-                textDecoration: "underline",
-              }}
-              onClick={() => navigate("/register")}
-            >
-              Register
-            </span>
-          </p>
-        </div>
+
+        <Text className="mt-6 text-center text-sm text-gray-600">
+          Don't have an account?{" "}
+          <Link onClick={() => navigate("/register")} className="text-blue-600 hover:underline">
+            Register
+          </Link>
+        </Text>
       </Stack>
-    </Stack>
+    </div>
   );
 };
 

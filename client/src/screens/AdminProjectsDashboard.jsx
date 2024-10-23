@@ -4,7 +4,12 @@ import {
   PrimaryButton,
   Stack,
   Text,
-  TextField
+  TextField,
+  DetailsList,
+  DetailsListLayoutMode,
+  SelectionMode,
+  Icon,
+  IconButton,
 } from "@fluentui/react";
 import { Body1, Subtitle1, Subtitle2 } from "@fluentui/react-components";
 import React, { useEffect, useState } from "react";
@@ -25,12 +30,13 @@ const AdminProjectsDashboard = () => {
 
   const [workspaceName, setWorkspaceName] = useState("");
   const [adminProjects, setAdminProjects] = useState([]);
-  const [users, setUsers] = useState([]); // For storing all users
-  const [selectedUserId, setSelectedUserId] = useState(null); // Store selected team lead
-  const [projectName, setProjectName] = useState(""); // Store project name
+  const [users, setUsers] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [projectName, setProjectName] = useState("");
   const [loading, setLoading] = useState(true);
-  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] =
-    useState(false);
+  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("projects");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchWorkspaceData = async () => {
@@ -40,9 +46,7 @@ const AdminProjectsDashboard = () => {
         setWorkspaceName(workspace.workspaceName);
         const projects = await fetchProjects(workspaceId);
         setAdminProjects(projects);
-        const usersData = await fetchWorkspaceUsersOfSpecificWorkSpace(
-          workspaceId
-        ); 
+        const usersData = await fetchWorkspaceUsersOfSpecificWorkSpace(workspaceId);
         setUsers(usersData);
       } catch (error) {
         console.error("Failed to fetch workspace data: ", error);
@@ -50,16 +54,9 @@ const AdminProjectsDashboard = () => {
         setLoading(false);
       }
     };
-      fetchWorkspaceData();
-  }, [
-    workspaceId,
-    getWorkspaceById,
-    fetchProjects,
-    fetchWorkspaceUsersOfSpecificWorkSpace,
-    adminProjects,
-  ]);
+    fetchWorkspaceData();
+  }, [workspaceId, getWorkspaceById, fetchProjects, fetchWorkspaceUsersOfSpecificWorkSpace]);
 
-  // Handle the creation of the project
   const handleCreateProject = async () => {
     if (projectName && selectedUserId && workspaceId) {
       try {
@@ -69,7 +66,7 @@ const AdminProjectsDashboard = () => {
           teamLeadId: selectedUserId,
         });
         alert("Project created successfully");
-        setIsCreateProjectModalOpen(false); 
+        setIsCreateProjectModalOpen(false);
         const updatedProjects = await fetchProjects(workspaceId);
         setAdminProjects(updatedProjects);
         setSelectedUserId(null);
@@ -80,79 +77,197 @@ const AdminProjectsDashboard = () => {
     }
   };
 
-  
+  // Filter projects and users based on search query
+  const filteredProjects = adminProjects.filter(project =>
+    project.projectName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredUsers = users.filter(user =>
+    user.userId.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Columns for the Projects Table
+  const projectColumns = [
+    {
+      key: "projectName",
+      name: "Project Name",
+      fieldName: "projectName",
+      minWidth: 200,
+      maxWidth: 300,
+      isResizable: true,
+    },
+    
+    {
+      key: "dateAdded",
+      name: "Created Date",
+      fieldName: "dateAdded",
+      minWidth: 100,
+      maxWidth: 150,
+      isResizable: true,
+      onRender: (item) => new Date(item.dateAdded).toLocaleDateString()
+    },
+    {
+      key: "actions",
+      name: "Actions",
+      minWidth: 100,
+      maxWidth: 150,
+      isResizable: true,
+      onRender: (item) => (
+        <IconButton
+          iconProps={{ iconName: "Delete" }}
+          title="Remove Project"
+          onClick={() => handleDeleteUser(item._id)}
+        />
+      ),
+    },
+    {
+      key: "open Project",
+      name: "Open Project",
+      minWidth: 100,
+      maxWidth: 150,
+      isResizable: true,
+      onRender: (item) => (
+        <Stack horizontal tokens={{ childrenGap: 8 }}>
+          <IconButton
+            iconProps={{ iconName: "OpenFile" }}
+            title="Open Project"
+            onClick={() => navigate(`/admin-task-view/${item._id}`)}
+          />
+        </Stack>
+      )
+    }
+  ];
+
+  // Columns for the Users Table
+  const userColumns = [
+    {
+      key: "email",
+      name: "Email",
+      fieldName: "email",
+      minWidth: 200,
+      maxWidth: 300,
+      isResizable: true,
+      onRender: (item) => item.userId.email
+    },
+    {
+      key: "role",
+      name: "Role",
+      fieldName: "role",
+      minWidth: 100,
+      maxWidth: 150,
+      isResizable: true,
+      onRender: (item) => item.role || "Member"
+    },
+    {
+      key: "dateAdded",
+      name: "Date Added",
+      fieldName: "dateAdded",
+      minWidth: 100,
+      maxWidth: 150,
+      isResizable: true,
+      onRender: (item) => new Date(item.dateAdded).toLocaleDateString()
+    }
+  ];
 
   return (
-    <Stack verticalFill>
+    <Stack verticalFill className="h-full bg-gray-100" style={{height: "100vh"}}>
       <Header />
-      <Stack tokens={{ padding: 16 }} horizontalAlign="center">
-        <Stack
-          horizontal
-          horizontalAlign="space-between"
-          verticalAlign="center"
-          tokens={{ childrenGap: 16 }}
-          style={{ width: "100%" }}
-        >
-          <Subtitle1 variant="xxLarge" block>
-            {workspaceName}
-          </Subtitle1>
-          {adminProjects.length > 0 && (
-            <PrimaryButton
-              text="+ Create New Project"
-              onClick={() => setIsCreateProjectModalOpen(true)} // Open the modal
+      
+      {/* Main Content with Side Panel */}
+      <Stack horizontal className="h-full" >
+        {/* Side Panel */}
+        <Stack className="w-64 bg-gray-200 p-4">
+          <div
+            className={`flex items-center space-x-2 p-3 cursor-pointer ${
+              activeTab === "projects" ? "text-blue-600" : "text-black"
+            }`}
+            onClick={() => setActiveTab("projects")}
+          >
+            <Icon iconName="ProjectCollection" className="text-l" />
+            <Text className="text-sm">Projects</Text>
+          </div>
+
+          <div
+            className={`flex items-center space-x-2 p-3 cursor-pointer ${
+              activeTab === "users" ? "text-blue-600" : "text-black"
+            }`}
+            onClick={() => setActiveTab("users")}
+          >
+            <Icon iconName="People" className="text-l" />
+            <Text className="text-sm">Workspace Members</Text>
+          </div>
+        </Stack>
+
+        {/* Main Content Area */}
+        <Stack className="flex-grow p-6">
+          {/* Header with Search and Actions */}
+          <Stack
+            horizontal
+            className="justify-between items-center mb-4"
+          >
+            <Stack>
+              <Text className="text-2xl font-bold">{workspaceName}</Text>
+              <Text className="text-sm text-gray-600">
+                {activeTab === "projects" ? "All Projects" : "Workspace Members"}
+              </Text>
+            </Stack>
+
+            {/* Search Box */}
+            <Stack horizontal tokens={{ childrenGap: 16 }} verticalAlign="center">
+              <TextField
+                placeholder={`Search ${activeTab}...`}
+                value={searchQuery}
+                onChange={(_, newValue) => setSearchQuery(newValue || "")}
+                styles={{ root: { width: 200 } }}
+              />
+              
+              {activeTab === "projects" && (
+                <PrimaryButton
+                  text="+ Create Project"
+                  onClick={() => setIsCreateProjectModalOpen(true)}
+                  className="bg-blue-500 text-white"
+                />
+              )}
+            </Stack>
+          </Stack>
+
+          {/* Content Area */}
+          {activeTab === "projects" ? (
+            <Stack>
+              {filteredProjects.length === 0 ? (
+                <Stack
+                  horizontalAlign="center"
+                  verticalAlign="center"
+                  className="min-h-[200px]"
+                >
+                  <Subtitle2>No Projects found.</Subtitle2>
+                  <PrimaryButton
+                    text="+ Create New Project"
+                    onClick={() => setIsCreateProjectModalOpen(true)}
+                    className="mt-4"
+                  />
+                </Stack>
+              ) : (
+                <DetailsList
+                  items={filteredProjects}
+                  columns={projectColumns}
+                  selectionMode={SelectionMode.none}
+                  layoutMode={DetailsListLayoutMode.fixedColumns}
+                />
+              )}
+            </Stack>
+          ) : (
+            <DetailsList
+              items={filteredUsers}
+              columns={userColumns}
+              selectionMode={SelectionMode.none}
+              layoutMode={DetailsListLayoutMode.fixedColumns}
             />
           )}
         </Stack>
-        {adminProjects.length === 0 ? (
-          <Stack
-            horizontalAlign="center"
-            verticalAlign="center"
-            style={{ minHeight: "200px" }}
-          >
-            <Subtitle2>
-              No Projects found.
-            </Subtitle2>
-            <PrimaryButton
-              text="+ Create New Project"
-              onClick={() => setIsCreateProjectModalOpen(true)} // Open the modal
-              style={{ marginTop: "16px" }}
-            />
-          </Stack>
-        ) : (
-          <Stack horizontal tokens={{ childrenGap: 16 }} wrap>
-            {adminProjects.map((project) => (
-              <Stack
-                key={project._id}
-                tokens={{ padding: 16, childrenGap: 8 }}
-                style={{
-                  background: "#fff",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                  borderRadius: "8px",
-                  minWidth: "200px",
-                }}
-              >
-                <Subtitle2 variant="large" block>
-                  {project.projectName}
-                </Subtitle2>
-                <Body1 variant="small" block>
-                  Created on: {new Date(project.dateAdded).toLocaleDateString()}
-                </Body1>
-                <PrimaryButton
-                  text="Open Project"
-                  onClick={() => {
-                    navigate(`/admin-task-view/${project._id}`),{
-                    state:{projectName: project.projectName , projectLead: project.teamLeadId.email}}
-                  }
-                    // Handle navigation to project page
-                  }
-                />
-              </Stack>
-            ))}
-          </Stack>
-        )}
       </Stack>
 
-      {/* Modal for creating a new project */}
+      {/* Create Project Modal */}
       <Modal
         isOpen={isCreateProjectModalOpen}
         onDismiss={() => setIsCreateProjectModalOpen(false)}
@@ -166,30 +281,25 @@ const AdminProjectsDashboard = () => {
             onChange={(e, newValue) => setProjectName(newValue || "")}
           />
 
-          <Text variant="medium" block style={{ margin: "16px 0 8px" }}>
+          <Text variant="medium" block className="my-4">
             Select Team Lead:
           </Text>
 
-          {/* Render checkboxes for each user */}
           {users.map((user) => (
             <Checkbox
-            styles={{ root: { marginBottom: 8 } }}
-              key={user._id}
+              key={user.userId._id}
               label={user.userId.email}
               checked={selectedUserId === user.userId._id}
               onChange={() => setSelectedUserId(user.userId._id)}
+              className="mb-2"
             />
           ))}
 
-          <Stack
-            horizontal
-            tokens={{ childrenGap: 16 }}
-            style={{ marginTop: 16 }}
-          >
+          <Stack horizontal tokens={{ childrenGap: 16 }} className="mt-4">
             <PrimaryButton
               text="Create"
               onClick={handleCreateProject}
-              disabled={!projectName || !selectedUserId} // Disable if no name or team lead is selected
+              disabled={!projectName || !selectedUserId}
             />
             <PrimaryButton
               text="Cancel"

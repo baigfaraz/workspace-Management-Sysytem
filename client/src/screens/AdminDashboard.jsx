@@ -1,15 +1,16 @@
 import {
-  CommandBar,
-  MessageBar,
-  MessageBarType,
   PrimaryButton,
   Stack,
   Text,
   Modal,
   TextField,
+  IconButton,
+  DetailsList,
+  DetailsListLayoutMode,
+  SelectionMode,
   Checkbox,
+  Icon,
 } from "@fluentui/react";
-import { Subtitle1 , Subtitle2 , Body1} from "@fluentui/react-components";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -20,68 +21,62 @@ const AdminDashboard = () => {
     adminWorkspaces,
     fetchAdminWorkspaces,
     user,
-    logout,
     createWorkspace,
     fetchUsers,
     addUsersToWorkspace,
+    // deleteWorkspace,
+    // deleteUser,
   } = useAuth();
   const navigate = useNavigate();
 
-  // States for controlling modals and managing input values
-  const [isCreateWorkspaceModalOpen, setIsCreateWorkspaceModalOpen] = useState(false);
+  const [isCreateWorkspaceModalOpen, setIsCreateWorkspaceModalOpen] =
+    useState(false);
   const [workspaceName, setWorkspaceName] = useState("");
   const [isAddUsersModalOpen, setIsAddUsersModalOpen] = useState(false);
-  const [users, setUsers] = useState([]); // All available users list
-  const [selectedUserIds, setSelectedUserIds] = useState([]); // Selected user IDs
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(null); // The workspace ID to add users to
+  const [users, setUsers] = useState([]);
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(null);
+  const [activeTab, setActiveTab] = useState("users");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch admin workspaces created by the admin when the component mounts
   useEffect(() => {
     if (user) {
       fetchAdminWorkspaces();
+      handleFetchUsers();
     }
   }, [user]);
 
-  // Fetch users when the "Add Users" modal opens
-  const handleOpenAddUsersModal = async (workspaceId) => {
-    setSelectedWorkspaceId(workspaceId); // Set the workspace ID to add users to
-    setIsAddUsersModalOpen(true);
-    const fetchedUsers = await fetchUsers(); // Fetch users from backend
-    setUsers(fetchedUsers); // Store users in the state
+  const handleFetchUsers = async () => {
+    const fetchedUsers = await fetchUsers();
+    setUsers(fetchedUsers);
   };
 
-  // Function to handle workspace creation logic
   const handleCreateWorkspace = () => {
     if (workspaceName.trim()) {
       createWorkspace(workspaceName);
       setIsCreateWorkspaceModalOpen(false);
-      setWorkspaceName(""); // Reset the field
+      setWorkspaceName("");
     }
   };
 
-  // Function to handle user selection via checkboxes
   const handleUserSelection = (userId, isChecked) => {
     if (isChecked) {
-      setSelectedUserIds((prevSelected) => [...prevSelected, userId]); // Add user ID to selected list
+      setSelectedUserIds((prevSelected) => [...prevSelected, userId]);
     } else {
       setSelectedUserIds((prevSelected) =>
         prevSelected.filter((id) => id !== userId)
-      ); // Remove user ID from selected list
+      );
     }
   };
 
-  // Function to handle adding users to the workspace
   const handleAddUsersToWorkspace = async () => {
     if (selectedUserIds.length > 0) {
       try {
-        console.log("workspaceId: ", selectedWorkspaceId);
         await addUsersToWorkspace(selectedWorkspaceId, selectedUserIds);
-        console.log("Users added successfully");
-        //alert("Users added successfully");
         alert("Users added successfully");
-        setIsAddUsersModalOpen(false); // Close the modal after adding
-        setSelectedUserIds([]); // Reset selected users
-        setSelectedWorkspaceId(null); // Reset selected workspace
+        setIsAddUsersModalOpen(false);
+        setSelectedUserIds([]);
+        setSelectedWorkspaceId(null);
       } catch (error) {
         console.error("Error adding users: ", error);
       }
@@ -90,113 +85,242 @@ const AdminDashboard = () => {
     }
   };
 
+  const filteredWorkspaces = adminWorkspaces.filter((workspace) =>
+    workspace.workspaceName.toLowerCase().includes(searchQuery)
+  );
+
+  const filteredUsers = users.filter((user) =>
+    user.email.toLowerCase().includes(searchQuery)
+  );
+
+  const handleDeleteWorkspace = async (workspaceId) => {
+    // await deleteWorkspace(workspaceId);
+    alert("Workspace deleted successfully");
+  };
+
+  const handleDeleteUser = async (userId) => {
+    // await deleteUser(userId);
+    alert("User deleted successfully");
+  };
+
+  // Columns for the Workspaces Table
+  const workspaceColumns = [
+    {
+      key: "name",
+      name: "Workspace Name",
+      fieldName: "workspaceName",
+      minWidth: 150,
+      maxWidth: 200,
+      isResizable: true,
+    },
+    {
+      key: "createdAt",
+      name: "Created At",
+      fieldName: "dateCreated",
+      minWidth: 150,
+      maxWidth: 200,
+      isResizable: true,
+      onRender: (item) => new Date(item.dateCreated).toLocaleDateString(),
+    },
+    {
+      key: "addMember",
+      name: "Add Members",
+      minWidth: 150,
+      maxWidth: 200,
+      isResizable: true,
+      onRender: (item) => (
+        <IconButton
+          iconProps={{ iconName: "Add" }}
+          title="Add Members"
+          onClick={() => {
+            setIsAddUsersModalOpen(true);
+            setSelectedWorkspaceId(item._id);
+          }}
+        />
+      ),
+    },
+    {
+      key: "removeWorkspace",
+      name: "Actions",
+      minWidth: 150,
+      maxWidth: 200,
+      isResizable: true,
+      onRender: (item) => (
+        <IconButton
+          iconProps={{ iconName: "Delete" }}
+          title="Remove Workspace"
+          onClick={() => handleDeleteWorkspace(item._id)}
+        />
+      ),
+    },
+    {
+      key: "openworkspace",
+      name: "Open Workspace",
+      minWidth: 150,
+      maxWidth: 200,
+      isResizable: true,
+      onRender: (item) => (
+        <IconButton
+          iconProps={{ iconName: "FabricOpenFolderHorizontal" }} // Updated icon name
+          title="Open Workspace"
+          onClick={() => navigate(`/admin-projects-dashboard/${item._id}`)}
+        />
+      ),
+    }    
+  ];
+
+  // Columns for the Users Table
+  const userColumns = [
+    {
+      key: "username",
+      name: "Username",
+      fieldName: "username",
+      minWidth: 150,
+      maxWidth: 200,
+      isResizable: true,
+    },
+    {
+      key: "email",
+      name: "Email",
+      fieldName: "email",
+      minWidth: 150,
+      maxWidth: 200,
+      isResizable: true,
+    },
+    {
+      key: "createdAt",
+      name: "Created At",
+      fieldName: "createdAt",
+      minWidth: 100,
+      maxWidth: 150,
+      isResizable: true,
+      onRender: (item) => new Date(item.createdAt).toLocaleDateString(),
+    },
+    {
+      key: "actions",
+      name: "Actions",
+      minWidth: 100,
+      maxWidth: 150,
+      isResizable: true,
+      onRender: (item) => (
+        <IconButton
+          iconProps={{ iconName: "Delete" }}
+          title="Remove User"
+          onClick={() => handleDeleteUser(item._id)}
+        />
+      ),
+    },
+  ];
+
   return (
-    <Stack verticalFill>
+    <Stack className="h-full bg-gray-100" style={{height: "100vh"}}>
       {/* Navbar */}
-     
       <Header />
-      {/* Main Content */}
-      <Stack tokens={{ padding: 16 }} horizontalAlign="center">
-        {/* Header Section */}
-        <Stack
-          horizontal
-          horizontalAlign="space-between"
-          verticalAlign="center"
-          tokens={{ childrenGap: 16 }}
-          style={{ width: "100%" }}
-        >
-          <Subtitle1>Workspaces</Subtitle1>
-          {adminWorkspaces.length > 0 && (
-            <PrimaryButton
-              text="+ Create New Workspace"
-              onClick={() => setIsCreateWorkspaceModalOpen(true)} // Open the modal
-            />
-          )}
+
+      {/* Main Content with Full-Height Side Panel */}
+      <Stack horizontal className="h-full">
+        {/* Side Panel */}
+        <Stack className="w-64 bg-gray-200 p-4">
+          <div
+            className={`flex items-center space-x-2 p-3 cursor-pointer ${
+              activeTab === "users" ? "text-blue-600" : "text-black"
+            }`}
+            onClick={() => setActiveTab("users")}
+          >
+            <Icon iconName="People" className="text-l" />
+            <Text className="text-sm">Active Users</Text>
+          </div>
+
+          <div
+            className={`flex items-center space-x-2 p-3 cursor-pointer ${
+              activeTab === "workspaces" ? "text-blue-600" : "text-black"
+            }`}
+            onClick={() => setActiveTab("workspaces")}
+          >
+            <Icon iconName="FabricFolderFill" className="text-l" />
+            <Text className="text-sm">Active Workspaces</Text>
+          </div>
         </Stack>
 
-        {/* Workspaces Display */}
-        {adminWorkspaces.length === 0 ? (
+        {/* Main Content Area */}
+        <Stack className="flex-grow p-6">
+          {/* Search Bar and Create Project Button */}
           <Stack
-            horizontalAlign="center"
-            verticalAlign="center"
-            style={{ minHeight: "200px" }}
+            horizontal
+            className="justify-between items-center mb-4"
           >
-            <Subtitle2>
-              No adminWorkspaces found.
-            </Subtitle2>
-            <PrimaryButton
-              text="+ Create New Workspace"
-              onClick={() => setIsCreateWorkspaceModalOpen(true)} // Open the modal
-              style={{ marginTop: "16px" }}
-            />
+            <Text className="text-xl font-bold">
+              {activeTab === "workspaces" ? "All Workspaces" : "All Registered Users"}
+            </Text>
+
+            <TextField
+                placeholder={`Search ${activeTab}...`}
+                value={searchQuery}
+                onChange={(_, newValue) => setSearchQuery(newValue || "")}
+                styles={{ root: { width: 200 } }}
+              />
+
+            {activeTab === "workspaces" && (
+              <PrimaryButton
+                text="+ Create Workspace"
+                className="bg-blue-500 text-white px-4 py-2 rounded"
+                onClick={() => setIsCreateWorkspaceModalOpen(true)}
+              />
+            )}
           </Stack>
-        ) : (
-          <Stack 
-            horizontal 
-            horizontalAlign="start"
-            verticalAlign="top"
-            tokens={{ childrenGap: 16 }} wrap>
-            {adminWorkspaces.map((workspace) => (
-              <Stack
-                key={workspace._id}
-                tokens={{ padding: 16, childrenGap: 8 }}
-                style={{
-                  background: "#fff",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                  borderRadius: "8px",
-                  minWidth: "200px",
-                }}
-              >
-                <Subtitle2 variant="large" block>
-                  {workspace.workspaceName}
-                </Subtitle2>
-                <Body1 variant="small" block>
-                  Created on:{" "}
-                  {new Date(workspace.dateCreated).toLocaleDateString()}
-                </Body1>
-                <PrimaryButton
-                  text="Open Workspace"
-                  onClick={() =>
-                    navigate(`/admin-projects-dashboard/${workspace._id}`)
-                  } // Pass the workspace ID to the route
+
+          {/* Display Users or Workspaces in a Table */}
+          <Stack className="overflow-auto ">
+            {activeTab === "users" ? (
+              filteredUsers.length === 0 ? (
+                <Text>No users found.</Text>
+              ) : (
+                <DetailsList
+                  items={filteredUsers}
+                  columns={userColumns}
+                  selectionMode={SelectionMode.none}
+                  layoutMode={DetailsListLayoutMode.fixedColumns}
                 />
-                <PrimaryButton
-                  text="Add Users"
-                  onClick={() => handleOpenAddUsersModal(workspace._id)} // Open the Add Users modal and pass workspace ID
-                />
-              </Stack>
-            ))}
+              )
+            ) : filteredWorkspaces.length === 0 ? (
+              <Text>No workspaces found.</Text>
+            ) : (
+              <DetailsList
+                items={filteredWorkspaces}
+                columns={workspaceColumns}
+                selectionMode={SelectionMode.none}
+                layoutMode={DetailsListLayoutMode.fixedColumns}
+                onClick={(item) => navigate(`/admin-projects-dashboard/${item._id}`)}
+              />
+            )}
           </Stack>
-        )}
+        </Stack>
       </Stack>
 
       {/* Modal for Creating New Workspace */}
       <Modal
         isOpen={isCreateWorkspaceModalOpen}
-        onDismiss={() => setIsCreateWorkspaceModalOpen(false)} // Close modal on dismiss
+        onDismiss={() => setIsCreateWorkspaceModalOpen(false)}
         isBlocking={false}
       >
-        <Stack tokens={{ padding: 16 }} styles={{ root: { width: 400 } }}>
-          <Text variant="xLarge" block>
-            Create New Workspace
-          </Text>
+        <Stack className="p-6 w-96">
+          <Text className="text-2xl font-bold">Create New Workspace</Text>
           <TextField
             label="Workspace Name"
             value={workspaceName}
-            onChange={(e, newValue) => setWorkspaceName(newValue || "")} // Handle input change
+            onChange={(e, newValue) => setWorkspaceName(newValue)}
+            required
           />
-          <Stack
-            horizontal
-            horizontalAlign="space-between"
-            tokens={{ childrenGap: 8, padding: 10 }}
-          >
+          <Stack horizontal className="mt-4 space-x-2">
             <PrimaryButton
-              text="Create Workspace"
+              text="Create"
               onClick={handleCreateWorkspace}
+              className="bg-green-500 text-white"
             />
             <PrimaryButton
               text="Cancel"
-              onClick={() => setIsCreateWorkspaceModalOpen(false)} // Close modal on cancel
+              onClick={() => setIsCreateWorkspaceModalOpen(false)}
+              className="bg-red-500 text-white"
             />
           </Stack>
         </Stack>
@@ -205,46 +329,25 @@ const AdminDashboard = () => {
       {/* Modal for Adding Users to Workspace */}
       <Modal
         isOpen={isAddUsersModalOpen}
-        onDismiss={() => {
-          setIsAddUsersModalOpen(false);
-          setSelectedUserIds([]); // Reset selected users on dismiss
-        }} // Close modal on dismiss
+        onDismiss={() => setIsAddUsersModalOpen(false)}
         isBlocking={false}
       >
-        <Stack tokens={{ padding: 16 }} styles={{ root: { width: 400 } }}>
-          <Text variant="xLarge" block>
-            Add Users to Workspace
-          </Text>
-          <Stack tokens={{ childrenGap: 8 }}>
-            {users.map((user) => (
-              <Checkbox
-                key={user._id}
-                label={user.email}
-                checked={selectedUserIds.includes(user._id)}
-                onChange={(e, isChecked) =>
-                  handleUserSelection(user._id, isChecked)
-                }
-              />
-            ))}
-          </Stack>
-          <Stack
-            horizontal
-            horizontalAlign="space-between"
-            tokens={{ childrenGap: 8, padding: 10 }}
-          >
-            <PrimaryButton
-              text="Add Users"
-              onClick={handleAddUsersToWorkspace} // Handle adding users to workspace
+        <Stack className="p-6 w-96">
+          <Text className="text-2xl font-bold">Add Users to Workspace</Text>
+
+          {users.map((user) => (
+            <Checkbox
+              label={user.email}
+              key={user._id}
+              onChange={(e, checked) => handleUserSelection(user._id, checked)}
             />
-            <PrimaryButton
-              text="Cancel"
-              onClick={() => {
-                // Close modal on cancel and reset selected users
-                setIsAddUsersModalOpen(false);
-                setSelectedUserIds([]);
-              }} // Close modal on cancel and reset selected users
-            />
-          </Stack>
+          ))}
+
+          <PrimaryButton
+            text="Add Users"
+            onClick={handleAddUsersToWorkspace}
+            className="mt-4 bg-blue-500 text-white"
+          />
         </Stack>
       </Modal>
     </Stack>

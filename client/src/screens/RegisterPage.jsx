@@ -1,7 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { TextField, PrimaryButton, MessageBar, MessageBarType } from "@fluentui/react";
+import { useAuth } from "../context/AuthContext";
+import {
+  Stack,
+  Text,
+  TextField,
+  PrimaryButton,
+  MessageBar,
+  MessageBarType,
+  initializeIcons,
+} from "@fluentui/react";
+import { mergeStyles } from "@fluentui/merge-styles";
+
+initializeIcons();
+
+const containerClass = mergeStyles(
+  "min-h-screen bg-gray-100 flex items-center justify-center px-4"
+);
+const formContainerClass = mergeStyles(
+  "bg-white p-8 rounded-lg shadow-md w-full max-w-md"
+);
 
 const RegisterPage = () => {
   const [email, setEmail] = useState("");
@@ -13,11 +31,7 @@ const RegisterPage = () => {
 
   useEffect(() => {
     if (user) {
-      if (user.role === "admin") {
-        navigate("/admin-dashboard");
-      } else {
-        navigate("/home");
-      }
+      navigate(user.role === "admin" ? "/admin-dashboard" : "/home");
     }
   }, [user, navigate]);
 
@@ -26,7 +40,7 @@ const RegisterPage = () => {
       setError("All fields are required");
       return false;
     }
-    if (!/\S+@\S+\.\S+/.test(email)) {  
+    if (!/\S+@\S+\.\S+/.test(email)) {
       setError("Invalid email format");
       return false;
     }
@@ -43,69 +57,73 @@ const RegisterPage = () => {
       const user = await register(username, email, password, "standard");
 
       // Navigate based on the user's role
-      if (user.role === "admin") {
-        navigate("/admin-dashboard");
-      } else {
-        navigate("/home");
-      }
+      navigate(user.role === "admin" ? "/admin-dashboard" : "/home");
     } catch (error) {
       setError(error.message); // Set error message
     }
   };
 
   return (
-    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", backgroundColor: "#f3f2f1" }}>
-      <div style={{ width: "100%", maxWidth: 400, backgroundColor: "#fff", padding: 24, borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
-        <h2 style={{ textAlign: "center", fontSize: "24px", marginBottom: "24px", fontWeight: "bold" }}>Register</h2>
+    <div className={containerClass}>
+      <Stack className={formContainerClass}>
+        <Text variant="xxLarge" className="text-center font-bold mb-6">
+          Register
+        </Text>
+
         <form onSubmit={handleRegister}>
-          <div style={{ marginBottom: 16 }}>
+          <Stack tokens={{ childrenGap: 15 }}>
             <TextField
               label="Username"
               value={username}
               onChange={(e, newValue) => setUsername(newValue)}
-              placeholder="Enter your username"
               required
+              className="w-full"
+              placeholder="Enter your username"
             />
-          </div>
-          <div style={{ marginBottom: 16 }}>
             <TextField
               label="Email"
               type="email"
               value={email}
               onChange={(e, newValue) => setEmail(newValue)}
-              placeholder="Enter your email"
               required
+              className="w-full"
+              placeholder="Enter your email"
             />
-          </div>
-          <div style={{ marginBottom: 16 }}>
+
             <TextField
               label="Password"
               type="password"
               value={password}
               onChange={(e, newValue) => setPassword(newValue)}
-              placeholder="Enter your password"
               required
+              className="w-full"
+              placeholder="Enter your password"
             />
-          </div>
-          {error && (
-            <MessageBar messageBarType={MessageBarType.error} isMultiline={false} style={{ marginBottom: 16 }}>
-              {error}
-            </MessageBar>
-          )}
-          <PrimaryButton type="submit" text="Register" style={{ width: "100%", marginTop: 16 }} />
-          <div style={{ marginTop: 16, textAlign: "center" }}>
-            <p style={{ fontSize: "14px", color: "#605e5c" }}>
-              Already have an account?{" "}
-              <span
-                style={{ color: "#0078d4", cursor: "pointer", textDecoration: "underline" }}
-                onClick={() => navigate("/login")}
+
+            {error && (
+              <MessageBar
+                messageBarType={MessageBarType.error}
+                isMultiline={false}
+                dismissButtonAriaLabel="Close"
               >
-                Login
-              </span>
-            </p>
-          </div>
+                {error}
+              </MessageBar>
+            )}
+
+            <PrimaryButton type="submit" text="Register" className="w-full" />
+          </Stack>
         </form>
-      </div>
+
+        <Text className="mt-6 text-center text-sm text-gray-600">
+          Already have an account?{" "}
+          <span
+            className="text-blue-600 hover:underline cursor-pointer"
+            onClick={() => navigate("/login")}
+          >
+            Login
+          </span>
+        </Text>
+      </Stack>
     </div>
   );
 };
