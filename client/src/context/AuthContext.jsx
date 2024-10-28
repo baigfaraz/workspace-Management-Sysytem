@@ -624,7 +624,6 @@ export const AuthProvider = ({ children }) => {
       // }
       const data = await response.json();
       console.log("Message sent successfully: ", data);
-      
     } catch (error) {
       console.error("Error sending message: ", error);
       throw error;
@@ -658,18 +657,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const getCompletedTasksInProject  = async (projectId) => {
+  const getCompletedTasksInProject = async (projectId) => {
     try {
-      const response = await fetch(`${STRINGS.BASE_URL}/tasks/getcompletedtasksinproject`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${user.token}`,
-        },
-        body: JSON.stringify({
-          projectId,
-        }),
-      });
+      const response = await fetch(
+        `${STRINGS.BASE_URL}/tasks/getcompletedtasksinproject`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${user.token}`,
+          },
+          body: JSON.stringify({
+            projectId,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -683,6 +685,60 @@ export const AuthProvider = ({ children }) => {
       throw error;
     }
   };
+
+  //delete workspace by Id
+  const deleteWorkSpaceById = async (workspaceId) => {
+    try {
+      const response = await fetch(
+        `${STRINGS.BASE_URL}/workspaces/deleteworkspace`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${user.token}`,
+          },
+          body: JSON.stringify({ workspaceId }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Workspace deleted successfully:", data);
+      } else {
+        console.error("Error deleting workspace:", data.error);
+      }
+    } catch (error) {
+      console.error("Error occurred while deleting workspace:", error);
+    }
+  };
+
+  // delete user by Id
+  const deleteUserById = async (userId) => {  
+    try {
+      const response = await fetch(`${STRINGS.BASE_URL}/users/deleteUserById`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`, // Ensure user.token is defined
+        },
+        body: JSON.stringify({
+          userId
+        })
+      });
+  
+      const data = await response.json(); // Make sure the response is JSON
+  
+      if (response.ok) {
+        console.log("User deleted successfully:", data);
+      } else {
+        console.error("Error deleting user:", data.message || data.error || 'An error occurred');
+      }
+    } catch (error) {
+      console.error("Error occurred while deleting user:", error);
+    }
+  };
+  
 
   // Provide user, login, logout, register, checkUserRole functions to the children components
   return (
@@ -719,6 +775,8 @@ export const AuthProvider = ({ children }) => {
         sendMessage,
         fetchAllMessages,
         getCompletedTasksInProject,
+        deleteWorkSpaceById,
+        deleteUserById,
       }}
     >
       {children}

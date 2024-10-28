@@ -92,8 +92,8 @@ const AdminProjectsDashboard = () => {
       key: "projectName",
       name: "Project Name",
       fieldName: "projectName",
-      minWidth: 200,
-      maxWidth: 300,
+      minWidth: 150,
+      maxWidth: 200,
       isResizable: true,
     },
     

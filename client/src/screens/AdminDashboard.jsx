@@ -24,8 +24,8 @@ const AdminDashboard = () => {
     createWorkspace,
     fetchUsers,
     addUsersToWorkspace,
-    // deleteWorkspace,
-    // deleteUser,
+    deleteWorkSpaceById,
+    deleteUserById,
   } = useAuth();
   const navigate = useNavigate();
 
@@ -94,12 +94,14 @@ const AdminDashboard = () => {
   );
 
   const handleDeleteWorkspace = async (workspaceId) => {
-    // await deleteWorkspace(workspaceId);
+    await deleteWorkSpaceById(workspaceId);
+    await fetchAdminWorkspaces();
     alert("Workspace deleted successfully");
   };
 
   const handleDeleteUser = async (userId) => {
-    // await deleteUser(userId);
+    await deleteUserById(userId);
+    handleFetchUsers();
     alert("User deleted successfully");
   };
 
@@ -166,7 +168,7 @@ const AdminDashboard = () => {
           onClick={() => navigate(`/admin-projects-dashboard/${item._id}`)}
         />
       ),
-    }    
+    },
   ];
 
   // Columns for the Users Table
@@ -213,7 +215,7 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <Stack className="h-full bg-gray-100" style={{height: "100vh"}}>
+    <Stack className="h-full bg-gray-100" style={{ height: "100vh" }}>
       {/* Navbar */}
       <Header />
 
@@ -245,28 +247,28 @@ const AdminDashboard = () => {
         {/* Main Content Area */}
         <Stack className="flex-grow p-6">
           {/* Search Bar and Create Project Button */}
-          <Stack
-            horizontal
-            className="justify-between items-center mb-4"
-          >
+          <Stack horizontal className="justify-between items-center mb-4">
             <Text className="text-xl font-bold">
-              {activeTab === "workspaces" ? "All Workspaces" : "All Registered Users"}
+              {activeTab === "workspaces"
+                ? "All Workspaces"
+                : "All Registered Users"}
             </Text>
-
-            <TextField
+            <Stack horizontal className="gap-4">
+              <TextField
                 placeholder={`Search ${activeTab}...`}
                 value={searchQuery}
                 onChange={(_, newValue) => setSearchQuery(newValue || "")}
                 styles={{ root: { width: 200 } }}
               />
 
-            {activeTab === "workspaces" && (
-              <PrimaryButton
-                text="+ Create Workspace"
-                className="bg-blue-500 text-white px-4 py-2 rounded"
-                onClick={() => setIsCreateWorkspaceModalOpen(true)}
-              />
-            )}
+              {activeTab === "workspaces" && (
+                <PrimaryButton
+                  text="+ Create Workspace"
+                  className="bg-blue-500 text-white px-4 py-2 rounded"
+                  onClick={() => setIsCreateWorkspaceModalOpen(true)}
+                />
+              )}
+            </Stack>
           </Stack>
 
           {/* Display Users or Workspaces in a Table */}
@@ -290,7 +292,9 @@ const AdminDashboard = () => {
                 columns={workspaceColumns}
                 selectionMode={SelectionMode.none}
                 layoutMode={DetailsListLayoutMode.fixedColumns}
-                onClick={(item) => navigate(`/admin-projects-dashboard/${item._id}`)}
+                onClick={(item) =>
+                  navigate(`/admin-projects-dashboard/${item._id}`)
+                }
               />
             )}
           </Stack>
@@ -311,16 +315,15 @@ const AdminDashboard = () => {
             onChange={(e, newValue) => setWorkspaceName(newValue)}
             required
           />
-          <Stack horizontal className="mt-4 space-x-2">
-            <PrimaryButton
-              text="Create"
-              onClick={handleCreateWorkspace}
-              className="bg-green-500 text-white"
-            />
+          <Stack horizontal className="mt-4 justify-between">
+            
             <PrimaryButton
               text="Cancel"
               onClick={() => setIsCreateWorkspaceModalOpen(false)}
-              className="bg-red-500 text-white"
+              />
+              <PrimaryButton
+              text="Create"
+              onClick={handleCreateWorkspace}
             />
           </Stack>
         </Stack>
@@ -333,13 +336,14 @@ const AdminDashboard = () => {
         isBlocking={false}
       >
         <Stack className="p-6 w-96">
-          <Text className="text-2xl font-bold">Add Users to Workspace</Text>
+          <Text className="text-2xl font-bold mb-2">Add Users to Workspace</Text>
 
           {users.map((user) => (
             <Checkbox
               label={user.email}
               key={user._id}
               onChange={(e, checked) => handleUserSelection(user._id, checked)}
+              className="mb-2"
             />
           ))}
 
